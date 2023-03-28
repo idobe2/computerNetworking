@@ -2,55 +2,66 @@ import socket
 import threading
 
 port_arr = [1111, 2222, 3333, 4444, 5555]
-index = int(input('Please select index number between 0 to 4\n'))
-print(index)
+while True:
+    index = int(input('Please enter server number: [1, 2, 3, 4, 5]\n')) - 1
+    if 0 <= index < 5: break
+    else: print('Invalid input!')
+mes_h, mes_w = 'Hello', 'World'
 
-def respond_to_client(conn_socket, client_address):
-    print('start listening from', client_address)
+
+def transmit_to_client(conn_socket, client_address):
+    print('Start listening from: ', client_address)
     while True:
         data = conn_socket.recv(1024)
         if not data:
             break
-        print('received from', client_address, 'text:', data.decode())
+        print('Received from: ', client_address, 'text:', data.decode())
         conn_socket.sendall(b'Echo: ' + data)
 
     conn_socket.close()
-    print('connection closed from', client_address)
+    print('Connection closed: ', client_address)
+
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-#sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-sock.bind(('0.0.0.0', port_arr[index]))
-sock.listen(1)
+try:
+    sock.bind(('0.0.0.0', port_arr[index]))
+    sock.listen(1)
+except OSError:
+    print("Server is busy!")
+    exit(0)
 
-def try_to_connect_other_server(ip, port):
+
+def connect_another(ip, port):
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         sock.connect((ip, port))
-        print('Start talking with server ~~ ', ip, port)
-        sock.send(b"Hello")
-        print('Sent Hello')
+        print('Start communicate with server: ', ip, port)
+        sock.send(mes_h.encode())
+        print('Sent: ', mes_h)
         data = sock.recv(1024)
-        print('Received  ', data.decode())
+        print('Received: ', data.decode())
     except ConnectionRefusedError:
-        print("ConnectionRefusedError")
+        pass
+        # print("ConnectionRefusedError")
+
 
 def respond_to_other(conn, conn_address):
-    print('start listening from', conn_address)
+    print('Listening from: ', conn_address)
     while True:
         data = conn.recv(1024)
         if not data: break
-        print('Received  ', data.decode())
-        conn.send('world'.encode())
-        print('Sent - World')
+        print('Received: ', data.decode())
+        conn.send(mes_w.encode())
+        print('Sent: ', mes_w)
 
-print('listening on', sock.getsockname())
+
+print('Listening on:', sock.getsockname())
 
 for i in port_arr:
     if i != port_arr[index]:
-        print('test: ', i)
-        threading.Thread(target=try_to_connect_other_server, args=('127.0.0.1', i)).start()
+        threading.Thread(target=connect_another, args=('127.0.0.1', i)).start()
 
 while True:
     conn_socket, client_address = sock.accept()
-    print('new connection from', client_address)
+    print('New connection: ', client_address)
     threading.Thread(target=respond_to_other, args=(conn_socket, client_address)).start()
