@@ -42,7 +42,6 @@ def connect_another(ip, port):
         print('Received: ', data.decode())
     except ConnectionRefusedError:
         pass
-        # print("ConnectionRefusedError")
 
 
 def respond_to_other(conn, conn_address):
