@@ -1,66 +1,112 @@
 import socket
 import threading
-
-port_arr = [1111, 2222, 3333, 4444, 5555]
-while True:
-    index = int(input('Please enter server number: [1, 2, 3, 4, 5]\n')) - 1
-    if 0 <= index < 5: break
-    else: print('Invalid input!')
-mes_h, mes_w = 'Hello', 'World'
+import sys
+import time
+from random import randint
 
 
-def transmit_to_client(conn_socket, client_address):
-    print('Start listening from: ', client_address)
-    while True:
-        data = conn_socket.recv(1024)
-        if not data:
-            break
-        print('Received from: ', client_address, 'text:', data.decode())
-        conn_socket.sendall(b'Echo: ' + data)
+class Server:
+    connections = []
+    peers = []
 
-    conn_socket.close()
-    print('Connection closed: ', client_address)
+    def __init__(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(('0.0.0.0', 10000))
+        sock.listen(1)
+        print("Server running...")
+        while True:
+            c, a = sock.accept()
+            cThread = threading.Thread(target=self.handler, args=(c, a))
+            cThread.daemon = True
+            cThread.start()
+            self.connections.append(c)
+            self.peers.append(a[0])
+            print(str(a[0]) + ':' + str(a[1]), "connected")
+            self.sendPeers()
 
+    def handler(self, c, a):
+        while True:
+            data = c.recv(1024)
+            for connection in self.connections:
+                connection.send(data)
+            if not data:
+                print(str(a[0]) + ':' + str(a[1]), "disconnected")
+                self.connections.remove(c)
+                self.peers.remove(a[0])
+                c.close()
+                self.sendPeers()
+                break
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-try:
-    sock.bind(('0.0.0.0', port_arr[index]))
-    sock.listen(1)
-except OSError:
-    print("Server is busy!")
-    exit(0)
+    def sendPeers(self):
+        p = ""
+        for peer in self.peers:
+            p = p + peer + ","
+        for connection in self.connections:
+            connection.send(b'\x11' + bytes(p, "utf-8"))
 
+class Client:
+    def sendMsg(self, sock):
+        while True:
+            sock.send(bytes(input(""), 'utf-8'))
 
-def connect_another(ip, port):
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        sock.connect((ip, port))
-        print('Start communicate with server: ', ip, port)
-        sock.send(mes_h.encode())
-        print('Sent: ', mes_h)
-        data = sock.recv(1024)
-        print('Received: ', data.decode())
-    except ConnectionRefusedError:
-        pass
+    def __init__(self, address):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.connect((address, 10000))
 
+        iThread = threading.Thread(target=self.sendMsg, args=(sock,))
+        iThread.daemon = True
+        iThread.start()
 
-def respond_to_other(conn, conn_address):
-    print('Listening from: ', conn_address)
-    while True:
-        data = conn.recv(1024)
-        if not data: break
-        print('Received: ', data.decode())
-        conn.send(mes_w.encode())
-        print('Sent: ', mes_w)
+        while True:
+            data = sock.recv(1024)
+            if not data:
+                break
+            if data[0:1] == b'\x11':
+                self.updatePeers(data[1:])
+            else:
+                print(str(data, 'utf-8'))
+    def updatePeers(self, peerData):
+        p2p.peers = str(peerData, "utf-8").split(",")[:-1]
 
+class p2p:
+    peers = ['127.0.0.1']
 
-print('Listening on:', sock.getsockname())
+server = Server()
+client = Client(p2p.peers[0])
 
-for i in port_arr:
-    if i != port_arr[index]:
-        threading.Thread(target=connect_another, args=('127.0.0.1', i)).start()
+#  if (len(sys.argv) > 1):
+#      Client = Client(sys.argv[1])
+# else: server = Server()
 
-while True:
-    conn_socket, client_address = sock.accept()
-    print('New connection: ', client_address)
-    threading.Thread(target=respond_to_other, args=(conn_socket, client_address)).start()
+# def is_server_up(ip_addr):
+#     return os.system('ping -c 1 ' + ip_addr + ' > /dev/null') == 0
+#
+# if is_server_up('127.0.0.1') == False:
+#     server = Server()
+# else:
+#     client = Client(p2p.peers[0])
+
+#
+# while True:
+#     try:
+#         print("Trying to connect...")
+#         server = Server()
+#         time.sleep(randint(1,5))
+#         for peer in p2p.peers:
+#             try:
+#                 client = Client(p2p.peers[0])
+#             except KeyboardInterrupt:
+#                 sys.exit(0)
+#             except:
+#                 pass
+#             if randint(1, 20) == 1:
+#                 try:
+#                     server = Server()
+#                 except KeyboardInterrupt:
+#                     sys.exit(0)
+#                 except:
+#                     print("Couldn't start the server...")
+#     except KeyboardInterrupt:
+#         sys.exit(0)
