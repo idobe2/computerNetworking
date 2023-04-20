@@ -1,5 +1,7 @@
 import socket
 import threading
+
+
 # import sys
 # import time
 # from random import randint
@@ -7,12 +9,15 @@ import threading
 class p2p:
     peers = ['127.0.0.1']
 
+
 def sendMsg(sock):
     while True:
         sock.send(bytes(input(""), 'utf-8'))
 
+
 def updatePeers(peerData):
     p2p.peers = str(peerData, "utf-8").split(",")[:-1]
+
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -30,6 +35,3 @@ while True:
         updatePeers(data[1:])
     else:
         print(str(data, 'utf-8'))
-
-
-

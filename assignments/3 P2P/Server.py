@@ -1,5 +1,7 @@
 import socket
 import threading
+
+
 # import sys
 # import time
 # from random import randint
@@ -17,12 +19,14 @@ def handler(c, a):
             sendPeers()
             break
 
+
 def sendPeers():
     p = ""
     for peer in peers:
         p = p + peer + ","
     for connection in connections:
         connection.send(b'\x11' + bytes(p, "utf-8"))
+
 
 connections = []
 peers = []
@@ -41,7 +45,6 @@ while True:
     peers.append(a[0])
     print(str(a[0]) + ':' + str(a[1]), "connected")
     sendPeers()
-
 
 #  if (len(sys.argv) > 1):
 #      Client = Client(sys.argv[1])
