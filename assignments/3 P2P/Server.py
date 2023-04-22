@@ -6,6 +6,12 @@ import threading
 # import time
 # from random import randint
 
+port_arr = [1111, 2222, 3333, 4444, 5555]
+while True:
+    index = int(input('Please enter server number: [1, 2, 3, 4, 5]\n')) - 1
+    if 0 <= index < 5: break
+    else: print('Invalid input!')
+
 def handler(c, a):
     while True:
         data = c.recv(1024)
@@ -33,7 +39,7 @@ peers = []
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-sock.bind(('0.0.0.0', 10000))
+sock.bind(('0.0.0.0', port_arr[index]))
 sock.listen(1)
 print("Server running...")
 while True:
