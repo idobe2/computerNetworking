@@ -2,11 +2,7 @@ import socket
 import threading
 import struct
 
-
-class P2P:
-    peers = ['127.0.0.1']
-    port_arr = [1001, 1002, 1003, 1004, 1005]
-
+port_arr = [1001, 1002, 1003, 1004, 1005]
 
 typeof, subtype, length, sub_len, msg = 0, 0, 0, 0, 0
 
@@ -24,10 +20,6 @@ def send_msg(conn):
         conn.send(message1.encode())
 
 
-def update_peers(peer_data):
-    P2P.peers = str(peer_data, "utf-8").split(",")[:-1]
-
-
 while True:
     index = int(input('Please select server to connect: [1, 2, 3, 4, 5]\n')) - 1
     if 0 <= index < 5:
@@ -38,7 +30,7 @@ while True:
 try:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.connect(('127.0.0.1', P2P.port_arr[index]))
+    sock.connect(('127.0.0.1', port_arr[index]))
 
     iThread = threading.Thread(target=send_msg, args=(sock,))
     iThread.daemon = True

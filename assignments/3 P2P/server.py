@@ -57,19 +57,16 @@ def msg_handler(server_socket, server_address):
                     count = 0
                     for name, value in clients_db.items():
                         if name == receiver:
-                            print(clients_db[name])
-                            print(value)
+                            print(f'{A} {value}')
                             connected_clients[value].send(struct.pack('>bb hh', 3, 0, len(new_msg), len(receiver)))
                             connected_clients[value].send(new_msg.encode())
                             count = 1
                             break
                     if count == 0:
                         for name1, value1 in connected_servers.items():
-                            print(connected_servers[name1])
                             value1.send(struct.pack('>bb hh', 3, 1, len(new_msg), len(receiver)))
                             value1.send(new_msg.encode())
                 if subtype == 1:
-                    print('msg')
                     msg = server_socket.recv(length).decode()
                     msg1 = msg.split()
                     receiver = msg1[0]
@@ -109,7 +106,7 @@ def main():
     serverip = '127.0.0.1'
     servers = [(serverip, 1001), (serverip, 1002), (serverip, 1003), (serverip, 1004), (serverip, 1005)]
     while True:
-        option = int(input(f'{C} : {serverip} \n1.\t1001\n2.\t1002\n3.\t1003\n4.\t1004\n5.\t1005\n[INPUT] -->\t')) - 1
+        option = int(input(f'{C} : {serverip}\n1.\t1001\n2.\t1002\n3.\t1003\n4.\t1004\n5.\t1005\n[INPUT] -->\t')) - 1
         if 0 <= option < 5:
             break
         else:
