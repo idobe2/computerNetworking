@@ -3,43 +3,29 @@ import threading
 import struct
 
 
-# import sys
-# import time
-# from random import randint
-
-class p2p:
+class P2P:
     peers = ['127.0.0.1']
-    port_arr = [1111, 2222, 3333, 4444, 5555]
+    port_arr = [1001, 1002, 1003, 1004, 1005]
 
 
-msg_type, msg_subtype, msg_len, msg_sublen, msg = 0, 0, 0, 0, 0
+typeof, subtype, length, sub_len, msg = 0, 0, 0, 0, 0
 
 
-def sendMsg(sock):
+def send_msg(conn):
+    name = input("Enter your name: ")
+    conn.send(struct.pack('>bb hh', 2, 1, len(name), 0))
+    conn.send(name.encode())
     while True:
-        opt = int(input("For configuring your user name press 2:\nFor sending massege press 3:\nYour option:\t"))
-        if opt == 2:
-            msg_type = 2
-            msg_sublen = 0
-            msg_subtype = 1
-            msg = (socket.gethostname()).encode()
-            msg_len = msg_sublen + len(msg)
-        elif opt == 3:
-            msg_type = 3
-            msg_sublen = len(socket.gethostname())
-            msg = (socket.gethostname()).encode()
-            msg_len = msg_sublen + len(msg)
-
-        # send = bytes(input(""), 'utf-8')
-        data = struct.pack('>bbhh', msg_type, msg_subtype, msg_len, msg_sublen)
-        sock.send(data)
-        sock.send(msg)
-        msg = 0
-        # sock.send(bytes(input(""), 'utf-8'))
+        sendto = input("Enter name to send to:\n")
+        message = input("Enter your message: ")
+        message1 = sendto + ' ' + message
+        msg_len = len(message1)
+        conn.send(struct.pack('>bb hh', 3, 0, msg_len, len(sendto)))
+        conn.send(message1.encode())
 
 
-def updatePeers(peerData):
-    p2p.peers = str(peerData, "utf-8").split(",")[:-1]
+def update_peers(peer_data):
+    P2P.peers = str(peer_data, "utf-8").split(",")[:-1]
 
 
 while True:
@@ -49,19 +35,23 @@ while True:
     else:
         print('Invalid input!')
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-sock.connect(('127.0.0.1', p2p.port_arr[index]))
+try:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.connect(('127.0.0.1', P2P.port_arr[index]))
 
-iThread = threading.Thread(target=sendMsg, args=(sock,))
-iThread.daemon = True
-iThread.start()
+    iThread = threading.Thread(target=send_msg, args=(sock,))
+    iThread.daemon = True
+    iThread.start()
 
-while True:
-    data = sock.recv(1024)
-    if not data:
-        break
-    if data[0:1] == b'\x11':
-        updatePeers(data[1:])
-    else:
-        print(str(data, 'utf-8'))
+    while True:
+        data = sock.recv(6)
+        if len(data) != 0:
+            typeof, subtype, length, sub_len = struct.unpack('>bb hh', data)
+            if typeof == 3:
+                msg = sock.recv(length)
+                message = msg.decode().split()
+                print(f'Received: {message[1]}')
+                print(f'From: {message[2]}')
+except ConnectionRefusedError:
+    print('[SERVER UNAVAILABLE]')

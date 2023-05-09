@@ -2,142 +2,155 @@ import socket
 import threading
 import struct
 
-port_arr = [1111, 2222, 3333, 4444, 5555]
+servers_db = {}
+clients_db = {}
 connected_servers = {}
 connected_clients = {}
-# msg_type, msg_subtype, msg_len, msg_sublen = 0, 0, 0, 0
-# mes_h, mes_w = 'Hello', 'World'
-
-while True:
-    index = int(input('Please enter server number: [1, 2, 3, 4, 5]\n')) - 1
-    if 0 <= index < 5:
-        break
-    else:
-        print('Invalid input!')
+A = '[NEW CONNECTION]'
+B = '[LOST CONNECTION]'
+C = f'[{socket.gethostname()}]'
+W = '[WELCOME]'
 
 
-def transmit_to_client(conn_socket, client_address):
-    print('Start listening from: ', client_address)
+def string_handler():
+    result = ""
+    for key in servers_db:
+        result += f"{key}" + ':' + f"{servers_db[key]}" + "'/0'"
+    return result
+
+
+def msg_handler(server_socket, server_address):
     while True:
-        data = conn_socket.recv(1024)
-        if not data:
-            break
-        print('Received from: ', client_address, 'text:', data.decode())
-        conn_socket.sendall(b'Echo: ' + data)
+        data = server_socket.recv(6)
+        if len(data) != 0:
+            typeof, subtype, length, sub_len = struct.unpack('>bb hh', data)
+            if typeof == 0:
+                if typeof == 0:
+                    server_socket.send(struct.pack('>bb hh', 1, 0, len(string_handler()), 0))
+                    server_socket.send(string_handler().encode())
+                if subtype == 1:
+                    server_socket.send(struct.pack('>p', string_handler()))
+            if typeof == 2:
+                print(server_socket.getpeername())
+                if subtype == 0:
+                    a = server_socket.getpeername()
+                    connected_servers[a] = server_socket
+                    servers_db[server_address[1]] = server_address[0]
+                    print(servers_db)
+                if subtype == 1:
+                    a = server_socket.getpeername()
+                    connected_clients[a] = server_socket
+                    name = server_socket.recv(length).decode()
+                    clients_db[name] = server_address
+            if typeof == 3:
+                if subtype == 0:
+                    sender = ' '
+                    msg = (server_socket.recv(length)).decode()
+                    msg1 = msg.split()
+                    receiver = msg1[0]
+                    client_address = server_socket.getpeername()
+                    for name, value in clients_db.items():
+                        if value == client_address:
+                            sender = name
+                            break
+                    new_msg = msg + ' ' + sender
+                    count = 0
+                    for name, value in clients_db.items():
+                        if name == receiver:
+                            print(clients_db[name])
+                            print(value)
+                            connected_clients[value].send(struct.pack('>bb hh', 3, 0, len(new_msg), len(receiver)))
+                            connected_clients[value].send(new_msg.encode())
+                            count = 1
+                            break
+                    if count == 0:
+                        for name1, value1 in connected_servers.items():
+                            print(connected_servers[name1])
+                            value1.send(struct.pack('>bb hh', 3, 1, len(new_msg), len(receiver)))
+                            value1.send(new_msg.encode())
+                if subtype == 1:
+                    print('msg')
+                    msg = server_socket.recv(length).decode()
+                    msg1 = msg.split()
+                    receiver = msg1[0]
+                    for name, value in clients_db.items():
+                        if name == receiver:
+                            connected_clients[value].send(struct.pack('>bb hh', 3, 0, len(msg), len(receiver)))
+                            connected_clients[value].send(msg.encode())
+                            break
 
-    conn_socket.close()
-    print('Connection closed: ', client_address)
+
+def connect_to_other(address, server_port):
+    for keys, values in servers_db.items():
+        if keys != address[1]:
+            server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+            server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            server_sock.bind(("127.0.0.1", server_port))
+            server_sock.connect((values, keys))
+            connected_servers[(values, keys)] = server_sock
+            server_sock.send(struct.pack('>bb hh', 2, 0, 0, 0))
+            threading.Thread(target=msg_handler, args=(server_sock, (values, keys),)).start()
 
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-# sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-try:
-    sock.bind(('0.0.0.0', port_arr[index]))
+def set_connection(server_port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind(('127.0.0.1', server_port))
     sock.listen(1)
-except OSError:
-    print("Server is busy!")
-    exit(0)
 
-def add_to_array(ip, port):
-    pass
-
-
-def connect_another(ip, port):
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.connect((ip, port))
-        print('Start communicate with server: ', ip, port)
-        connected_servers.update({port: '0.0.0.0'})
-        msg_type, msg_subtype, msg_len, msg_sublen, msg = 0, 0, 0, 0, 0
-        opt = int(input("For servers information press 0:\nFor clients information press 1:\nYour option:\t"))
-        if opt == 0:
-            msg_subtype = 1
-            info = struct.pack('>bbhh', msg_type, msg_subtype, msg_len, msg_sublen)
-            print("testets: ", msg)
-            sock.send(info)
-        else:
-            info = struct.pack('>bbhh', msg_type, msg_subtype, msg_len, msg_sublen)
-            sock.send(info)
-
-        # sock.send(mes_h.encode())
-        # print('Sent: ', mes_h)
-        data = sock.recv(1024)
-        msg_handler(data, sock, sock.getsockname()[0])
-        print('Received: here3 ', struct.unpack('>bbhh', data))
-    except ConnectionRefusedError:
-        pass
-
-
-def msg_handler(data, conn, conn_address):
-    print("test", struct.unpack('>bbhh', data))
-    msg_type, msg_subtype, msg_len, msg_sublen = struct.unpack('>bbhh', data)
-    print(msg_type, " ", msg_subtype, " ", msg_len, " ", msg_sublen)
-    if msg_type == 0:
-        print(f'resconn: {connected_servers}')
-        res = f'{connected_servers}'.replace("'", "")
-        res = res.replace("{", "").replace(" ", "").replace("}", "").replace(",", "\0")
-        msg_type, msg_subtype, msg_len, msg_sublen = 1, 0, len(res), 0
-        data = struct.pack('>bbhh', msg_type, msg_subtype, msg_len, msg_sublen)
-        conn.send(data)
-        print(f'res:{res}')
-        conn.send(res.encode())
-        print('sent2')
-    elif msg_type == 2:
-        if msg_subtype == 1:
-            msg = conn.recv(msg_len)
-            # print('Received: ', msg.decode())
-            connected_clients.update({msg.decode(): conn_address})
-            # print(f'test: {connected_clients}')
-    elif msg_type == 1:
-        msg = conn.recv(msg_len)
-        my_list = msg.decode().split('\0')
-        for item in my_list:
-            key, value = item.split(':')
-            connected_servers[key] = value
-        print(f'ze ze{connected_servers}')
-        print('Received: here ', msg.decode())
-
-
-def respond_to_other(conn, conn_address):
-    print('Listening from: ', conn_address)
-    # print(f'conn2: {conn.getsockname()[1]}')
-    # connected_servers.update({port_arr[index]: '0.0.0.0'})
-    # print(f'array{connected_servers}')
     while True:
-        data = conn.recv(1024)
-        if data.decode() in port_arr:
-            connected_servers.update({data.decode(): '0.0.0.0'})
-        # msg: 0 0 0 0 , 0 1 0 0
-        elif not data: break
+        server_socket, server_address = sock.accept()
+        print(f'{A} --> {server_address[1]}\n')
+        threading.Thread(target=msg_handler, args=(server_socket, server_address,)).start()
+
+
+def main():
+    ports = [1001, 1002, 1003, 1004, 1005]
+    serverip = '127.0.0.1'
+    servers = [(serverip, 1001), (serverip, 1002), (serverip, 1003), (serverip, 1004), (serverip, 1005)]
+    while True:
+        option = int(input(f'{C} : {serverip} \n1.\t1001\n2.\t1002\n3.\t1003\n4.\t1004\n5.\t1005\n[INPUT] -->\t')) - 1
+        if 0 <= option < 5:
+            break
         else:
+            print('Invalid input!')
+    server_port = ports[option]
+
+    for i in range(len(ports)):
+        if i != option:
+            try:
+                server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+                server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                server_sock.bind(('127.0.0.1', server_port))
+                server_sock.connect(servers[i])
+                a = (servers[i])
+                connected_servers[a] = server_sock
+                print(f'{A} --> {ports[i]}')
+                server_sock.send(struct.pack('>bb hh', 2, 0, 0, 0))
+                servers_db[ports[i]] = servers[i][0]
+                server_sock.send(struct.pack('>bb hh', 0, 0, 0, 0))
+                data = server_sock.recv(6)
+                typeof, subtype, length, sub_len = struct.unpack('>bb hh', data)
+                if typeof == 1:
+                    msg = server_sock.recv(length).decode()
+                    if msg != 0:
+                        ip_port_list = msg.split("'")
+                        for ip_port_str in ip_port_list:
+                            if ip_port_str != "" and ip_port_str != "/0":
+                                ip, port = ip_port_str.split(":")
+                                ip1 = int(ip)
+                                if int(ip) != server_port:
+                                    servers_db[ip1] = port
+                    if len(servers_db) > 1:
+                        connect_to_other(servers[i], server_port)
+                threading.Thread(target=msg_handler, args=(server_sock, servers[i],)).start()
+                break
+            except ConnectionRefusedError:
+                print(f'{B} --> {ports[i]}')
+
+    threading.Thread(target=set_connection, args=(server_port,)).start()
 
 
-            print('Received: here2', struct.unpack('>bbhh', data))
-            # if recv_msg == '0 0 0 0':
-            #     for server in connected_servers:
-            #         serv = f'{server[0]}:{server[1]}'
-            #         conn.send(serv.encode())
-
-            msg_handler(data, conn, conn_address)
-            # conn.send(mes_w.encode())
-            # print('Sent: ', mes_w)
-
-
-print('Listening on:', sock.getsockname())
-# connected_servers.append(sock.getsockname())
-print(f'conn1: {port_arr[index]}')
-connected_servers.update({port_arr[index]: '0.0.0.0'})
-# print(f'test: {connected_servers}')
-
-for i in port_arr:
-    if i != port_arr[index]:
-        threading.Thread(target=connect_another, args=('127.0.0.1', i)).start()
-        break
-
-
-while True:
-    conn_socket, client_address = sock.accept()
-    print('New connection: ', client_address)
-    threading.Thread(target=respond_to_other, args=(conn_socket, client_address)).start()
+if __name__ == '__main__':
+    print(W)
+    main()
