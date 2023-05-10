@@ -1,6 +1,9 @@
 import socket
 import threading
 import struct
+import time
+import requests
+import sys
 
 port_arr = [1001, 1002, 1003, 1004, 1005]
 
@@ -12,6 +15,13 @@ D = '[SERVER UNAVAILABLE]'
 E = 'Enter your name:'
 F = 'Enter a username to send a message to:'
 G = 'Enter your message:'
+
+
+def req_servers(conn):
+    conn.send(struct.pack('>bb hh', 0, 0, 0, 0))  # request servers
+    reply = conn.recv(6)
+    typeof, subtype, length, sub_len = struct.unpack('>bb hh', reply)
+    data = (conn.recv(length)).decode()
 
 
 def send_msg(conn):
@@ -38,6 +48,7 @@ try:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.connect(('127.0.0.1', port_arr[index]))
+    req_servers(sock)
 
     iThread = threading.Thread(target=send_msg, args=(sock,))
     iThread.daemon = True
