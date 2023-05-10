@@ -52,5 +52,6 @@ try:
                 message = msg.decode().split()
                 print(f'\n{B} {message[1]}')
                 print(f'{C} {message[2]}')
+                print(f'{F} ')
 except ConnectionRefusedError:
     print(D)
