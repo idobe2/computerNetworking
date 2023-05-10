@@ -5,15 +5,22 @@ import struct
 port_arr = [1001, 1002, 1003, 1004, 1005]
 
 typeof, subtype, length, sub_len, msg = 0, 0, 0, 0, 0
+A = '[SEND]'
+B = '[RECEIVED]'
+C = '[FROM]'
+D = '[SERVER UNAVAILABLE]'
+E = 'Enter your name:'
+F = 'Enter a username to send a message to:'
+G = 'Enter your message:'
 
 
 def send_msg(conn):
-    name = input("Enter your name: ")
+    name = input(f'{A}\n{E} ')
     conn.send(struct.pack('>bb hh', 2, 1, len(name), 0))
     conn.send(name.encode())
     while True:
-        sendto = input("Enter name to send to:\n")
-        message = input("Enter your message: ")
+        sendto = input(f'{F} ')
+        message = input(f'{G} ')
         message1 = sendto + ' ' + message
         msg_len = len(message1)
         conn.send(struct.pack('>bb hh', 3, 0, msg_len, len(sendto)))
@@ -43,7 +50,7 @@ try:
             if typeof == 3:
                 msg = sock.recv(length)
                 message = msg.decode().split()
-                print(f'Received: {message[1]}')
-                print(f'From: {message[2]}')
+                print(f'\n{B} {message[1]}')
+                print(f'{C} {message[2]}')
 except ConnectionRefusedError:
-    print('[SERVER UNAVAILABLE]')
+    print(D)

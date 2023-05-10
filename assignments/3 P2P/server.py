@@ -13,9 +13,9 @@ W = '[WELCOME]'
 
 
 def string_handler():
-    result = ""
+    result = ''
     for key in servers_db:
-        result += f"{key}" + ':' + f"{servers_db[key]}" + "'/0'"
+        result += f'{key}' + ':' + f'{servers_db[key]}' + "'/0'"
     return result
 
 
@@ -82,7 +82,7 @@ def connect_to_other(address, server_port):
         if keys != address[1]:
             server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
             server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            server_sock.bind(("127.0.0.1", server_port))
+            server_sock.bind(('127.0.0.1', server_port))
             server_sock.connect((values, keys))
             connected_servers[(values, keys)] = server_sock
             server_sock.send(struct.pack('>bb hh', 2, 0, 0, 0))
@@ -133,8 +133,8 @@ def main():
                     if msg != 0:
                         ip_port_list = msg.split("'")
                         for ip_port_str in ip_port_list:
-                            if ip_port_str != "" and ip_port_str != "/0":
-                                ip, port = ip_port_str.split(":")
+                            if ip_port_str != '' and ip_port_str != '/0':
+                                ip, port = ip_port_str.split(':')
                                 ip1 = int(ip)
                                 if int(ip) != server_port:
                                     servers_db[ip1] = port
