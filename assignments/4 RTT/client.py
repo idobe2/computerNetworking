@@ -6,7 +6,10 @@ import struct
 port_arr = [1001, 1002, 1003, 1004, 1005]
 servers_db = {}
 rtt_values = {}
+connected_servers = {}
 typeof, subtype, length, sub_len, msg = 0, 0, 0, 0, 0
+serverip = '127.0.0.1'
+servers = [(serverip, 1001), (serverip, 1002), (serverip, 1003), (serverip, 1004), (serverip, 1005)]
 A = '[SEND]'
 B = '[RECEIVED]'
 C = '[FROM]'
@@ -21,8 +24,6 @@ def send_msg(conn):
     conn.send(struct.pack('>bb hh', 2, 1, len(name), 0))
     conn.send(name.encode())
     conn.send(struct.pack('>bb hh', 0, 0, 0, 0))
-    data = conn.recv(6)
-    typeof, subtype, length, sub_len = struct.unpack('>bb hh', data)
     while True:
         sendto = input(f'{F} ')
         message = input(f'{G} ')
@@ -31,16 +32,6 @@ def send_msg(conn):
         conn.send(struct.pack('>bb hh', 3, 0, msg_len, len(sendto)))
         conn.send(message1.encode())
 
-
-def CheckRTT(address, server_port):
-    for keys, values in servers_db.items():
-        if keys != address[1]:
-            server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-            server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            server_sock.bind(('127.0.0.1', server_port))
-            server_sock.connect((values, keys))
-            connected_servers[(values, keys)] = server_soc
-            threading.Thread(target=msg_handler, args=(server_sock, (values, keys),)).start()
 
 def main():
     while True:
@@ -53,8 +44,8 @@ def main():
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.connect(('127.0.0.1', port_arr[index]))
 
+        sock.connect(('127.0.0.1', port_arr[index]))
         iThread = threading.Thread(target=send_msg, args=(sock,))
         iThread.daemon = True
         iThread.start()
@@ -75,14 +66,14 @@ def main():
                         ip_port_list = msg.split("'")
                         for ip_port_str in ip_port_list:
                             if ip_port_str != '' and ip_port_str != '/0':
-                                print(f'Check: {ip_port_str}')
                                 ip, port = ip_port_str.split(':')
                                 ip1 = int(ip)
                                 servers_db[ip1] = port
-                    if len(servers_db) > 1:
-                        CheckRTT(servers[i], server_port)
+                                connected_servers[ip] = port
+
     except ConnectionRefusedError:
         print(D)
+
 
 if __name__ == '__main__':
     main()
