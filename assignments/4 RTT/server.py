@@ -6,9 +6,14 @@ servers_db = {}
 clients_db = {}
 connected_servers = {}
 connected_clients = {}
+ports = [1001, 1002, 1003, 1004, 1005]
+serverip = '127.0.0.1'
 A = '[NEW CONNECTION]'
 B = '[LOST CONNECTION]'
 C = f'[{socket.gethostname()}]'
+E = '[ECHO]'
+F = '[SERVER CLOSED]'
+G = '[CLIENT CLOSED]'
 W = '[WELCOME]'
 
 
@@ -76,9 +81,20 @@ def msg_handler(server_socket, server_address):
                                 connected_clients[value].send(struct.pack('>bb hh', 3, 0, len(msg), len(receiver)))
                                 connected_clients[value].send(msg.encode())
                                 break
+                elif typeof == 4:
+                    if subtype == 0:
+                        msg = E.encode()
+                        server_socket.send(msg)
+                    elif subtype == 1:
+                        server_socket.close()
+
     except ConnectionResetError:
-        print(f'{B} --> {server_address}')
-        del connected_servers[server_address]
+        if server_address[1] in ports:
+            del connected_servers[server_address]
+            print(f'{F} --> {server_address}')
+        else:
+            del connected_clients[server_socket.getpeername()]
+            print(f'{G} --> {server_address}')
 
 
 def connect_to_other(address, server_port):
@@ -106,8 +122,6 @@ def set_connection(server_port):
 
 
 def main():
-    ports = [1001, 1002, 1003, 1004, 1005]
-    serverip = '127.0.0.1'
     servers = [(serverip, 1001), (serverip, 1002), (serverip, 1003), (serverip, 1004), (serverip, 1005)]
     while True:
         option = int(input(f'{C} : {serverip}\n1.\t1001\n2.\t1002\n3.\t1003\n4.\t1004\n5.\t1005\n[INPUT] -->\t')) - 1
