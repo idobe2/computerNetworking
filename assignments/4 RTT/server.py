@@ -20,61 +20,65 @@ def string_handler():
 
 
 def msg_handler(server_socket, server_address):
-    while True:
-        data = server_socket.recv(6)
-        if len(data) != 0:
-            typeof, subtype, length, sub_len = struct.unpack('>bb hh', data)
-            if typeof == 0:
-                if subtype == 0:
-                    server_socket.send(struct.pack('>bb hh', 1, 0, len(string_handler()), 0))
-                    server_socket.send(string_handler().encode())
-                elif subtype == 1:
-                    server_socket.send(struct.pack('>p', string_handler()))
-            elif typeof == 2:
-                print(server_socket.getpeername())
-                if subtype == 0:
-                    a = server_socket.getpeername()
-                    connected_servers[a] = server_socket
-                    servers_db[server_address[1]] = server_address[0]
-                    print(servers_db)
-                elif subtype == 1:
-                    a = server_socket.getpeername()
-                    connected_clients[a] = server_socket
-                    name = server_socket.recv(length).decode()
-                    clients_db[name] = server_address
-            elif typeof == 3:
-                if subtype == 0:
-                    sender = ' '
-                    msg = (server_socket.recv(length)).decode()
-                    msg1 = msg.split()
-                    receiver = msg1[0]
-                    client_address = server_socket.getpeername()
-                    for name, value in clients_db.items():
-                        if value == client_address:
-                            sender = name
-                            break
-                    new_msg = msg + ' ' + sender
-                    count = 0
-                    for name, value in clients_db.items():
-                        if name == receiver:
-                            print(f'{A} {value}')
-                            connected_clients[value].send(struct.pack('>bb hh', 3, 0, len(new_msg), len(receiver)))
-                            connected_clients[value].send(new_msg.encode())
-                            count = 1
-                            break
-                    if count == 0:
-                        for name1, value1 in connected_servers.items():
-                            value1.send(struct.pack('>bb hh', 3, 1, len(new_msg), len(receiver)))
-                            value1.send(new_msg.encode())
-                elif subtype == 1:
-                    msg = server_socket.recv(length).decode()
-                    msg1 = msg.split()
-                    receiver = msg1[0]
-                    for name, value in clients_db.items():
-                        if name == receiver:
-                            connected_clients[value].send(struct.pack('>bb hh', 3, 0, len(msg), len(receiver)))
-                            connected_clients[value].send(msg.encode())
-                            break
+    try:
+        while True:
+            data = server_socket.recv(6)
+            if len(data) != 0:
+                typeof, subtype, length, sub_len = struct.unpack('>bb hh', data)
+                if typeof == 0:
+                    if subtype == 0:
+                        server_socket.send(struct.pack('>bb hh', 1, 0, len(string_handler()), 0))
+                        server_socket.send(string_handler().encode())
+                    elif subtype == 1:
+                        server_socket.send(struct.pack('>p', string_handler()))
+                elif typeof == 2:
+                    print(server_socket.getpeername())
+                    if subtype == 0:
+                        a = server_socket.getpeername()
+                        connected_servers[a] = server_socket
+                        servers_db[server_address[1]] = server_address[0]
+                        print(servers_db)
+                    elif subtype == 1:
+                        a = server_socket.getpeername()
+                        connected_clients[a] = server_socket
+                        name = server_socket.recv(length).decode()
+                        clients_db[name] = server_address
+                elif typeof == 3:
+                    if subtype == 0:
+                        sender = ' '
+                        msg = (server_socket.recv(length)).decode()
+                        msg1 = msg.split()
+                        receiver = msg1[0]
+                        client_address = server_socket.getpeername()
+                        for name, value in clients_db.items():
+                            if value == client_address:
+                                sender = name
+                                break
+                        new_msg = msg + ' ' + sender
+                        count = 0
+                        for name, value in clients_db.items():
+                            if name == receiver:
+                                print(f'{A} {value}')
+                                connected_clients[value].send(struct.pack('>bb hh', 3, 0, len(new_msg), len(receiver)))
+                                connected_clients[value].send(new_msg.encode())
+                                count = 1
+                                break
+                        if count == 0:
+                            for name1, value1 in connected_servers.items():
+                                value1.send(struct.pack('>bb hh', 3, 1, len(new_msg), len(receiver)))
+                                value1.send(new_msg.encode())
+                    elif subtype == 1:
+                        msg = server_socket.recv(length).decode()
+                        msg1 = msg.split()
+                        receiver = msg1[0]
+                        for name, value in clients_db.items():
+                            if name == receiver:
+                                connected_clients[value].send(struct.pack('>bb hh', 3, 0, len(msg), len(receiver)))
+                                connected_clients[value].send(msg.encode())
+                                break
+    except ConnectionResetError:
+        print(f'{B} --> {server_address}')
+        del connected_servers[server_address]
 
 
 def connect_to_other(address, server_port):

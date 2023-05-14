@@ -33,16 +33,6 @@ def send_msg(conn):
         conn.send(message1.encode())
 
 
-def CheckRTT(address, server_port):
-    for keys, values in servers_db.items():
-        if keys != address[1]:
-            server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-            server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            server_sock.bind(('127.0.0.1', server_port))
-            server_sock.connect((values, keys))
-            connected_servers[(values, keys)] = server_sock
-            print(f'test CheckRTT: {connected_servers}')
-
 def main():
     while True:
         index = int(input('Please select server to connect: [1, 2, 3, 4, 5]\n')) - 1
@@ -54,8 +44,8 @@ def main():
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.connect(('127.0.0.1', port_arr[index]))
 
+        sock.connect(('127.0.0.1', port_arr[index]))
         iThread = threading.Thread(target=send_msg, args=(sock,))
         iThread.daemon = True
         iThread.start()
@@ -76,33 +66,13 @@ def main():
                         ip_port_list = msg.split("'")
                         for ip_port_str in ip_port_list:
                             if ip_port_str != '' and ip_port_str != '/0':
-                                print(f'Check: {ip_port_str}')
                                 ip, port = ip_port_str.split(':')
                                 ip1 = int(ip)
                                 servers_db[ip1] = port
                                 connected_servers[ip] = port
-                        print(f'test CheckRTT: {connected_servers}')
 
     except ConnectionRefusedError:
         print(D)
-
-# def msg_handler(client_socket, server_address):
-#
-#     while True:
-#         data = client_socket.recv(6)
-#         if len(data) != 0:
-#             if typeof == 1:
-#                 msg = client_socket.recv(length).decode()
-#                 if msg != 0:
-#                     ip_port_list = msg.split("'")
-#                     for ip_port_str in ip_port_list:
-#                         if ip_port_str != '' and ip_port_str != '/0':
-#                             print(f'Check: {ip_port_str}')
-#                             ip, port = ip_port_str.split(':')
-#                             ip1 = int(ip)
-#                             servers_db[ip1] = port
-#                 if len(servers_db) > 1:
-#                     CheckRTT(serverip, port_arr[index])
 
 
 if __name__ == '__main__':
