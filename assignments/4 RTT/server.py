@@ -20,6 +20,9 @@ W = '[WELCOME]'
 
 
 def string_handler():
+    """
+    Arranges the format of the string
+    """
     result = ''
     for key in servers_db:
         result += f'{key}' + ':' + f'{servers_db[key]}' + "'/0'"
@@ -27,6 +30,11 @@ def string_handler():
 
 
 def msg_handler(server_socket, server_address):
+    """
+    Dealing with the messages we received according to their type
+    :param server_socket: The socket of the server/client we are connected to
+    :param server_address: The address of the server/client we are connected to
+    """
     try:
         while True:
             data = server_socket.recv(6)
@@ -94,12 +102,18 @@ def msg_handler(server_socket, server_address):
         if server_address[1] in ports:
             del connected_servers[server_address]
             print(f'{F} --> {server_address}')
+            server_socket.close()
         elif server_socket.getpeername() in connected_clients:
             del connected_clients[server_socket.getpeername()]
             print(f'{G} --> {server_address}')
 
 
 def connect_to_other(address, server_port):
+    """
+    Responsible for the connection between the servers
+    :param address:  The address of the server we want to connect
+    :param server_port: the port of the server we want to connect
+    """
     for keys, values in servers_db.items():
         if keys != address[1]:
             server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
@@ -114,6 +128,10 @@ def connect_to_other(address, server_port):
 
 
 def set_connection(server_port):
+    """
+    Put the server on listen mode
+    :param server_port: the port of the server we want to listen
+    """
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(('127.0.0.1', server_port))
@@ -128,6 +146,10 @@ def set_connection(server_port):
 
 
 def main():
+    """
+    Responsible for the selection of the server we want to establish,
+    and the beginning of managing the connection to the other servers that up.
+    """
     servers = [(serverip, 1001), (serverip, 1002), (serverip, 1003), (serverip, 1004), (serverip, 1005)]
     while True:
         option = int(input(f'{C} : {serverip}\n1.\t1001\n2.\t1002\n3.\t1003\n4.\t1004\n5.\t1005\n[INPUT] -->\t')) - 1

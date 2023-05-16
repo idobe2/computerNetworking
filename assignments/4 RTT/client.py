@@ -24,6 +24,9 @@ H = '[CONNECTION CLOSED]'
 
 
 def build_connections():
+    """
+    Build connection with all the connected server from the received dictionary
+    """
     for item in connected_servers:
         if item.split("'")[0] not in connected_ports:
             connected_ports.append(item.split("'")[0])
@@ -39,6 +42,11 @@ def build_connections():
 
 
 def CheckRTT(sock, port):
+    """
+    Calculates the RTT and saves it in a dictionary
+    :param sock: The socket we opened a connection to
+    :param port: The port of this connection
+    """
     start = time.time()
     sock.send(struct.pack('>bb hh', 4, 0, 0, 0))
     sock.recv(6)
@@ -47,8 +55,11 @@ def CheckRTT(sock, port):
     rtt_values.update({str(port): elapsed})
 
 
-
 def send_msg(conn):
+    """
+    Sends a message to client user by name
+    :param conn: The server we are connected to
+    """
     while True:
         time.sleep(1)
         sendto = input(f'{F}\n')
@@ -60,6 +71,9 @@ def send_msg(conn):
 
 
 def main():
+    """
+    Build the first connection with the server we pick, received the messages by type and handle them.
+    """
     while True:
         index = int(input('Please select server to connect: [1, 2, 3, 4, 5]\n')) - 1
         if 0 <= index < 5:
@@ -97,6 +111,7 @@ def main():
                                 connected_servers[ip] = port
                         build_connections()
                         rtt_array = list(rtt_values.values())
+                        print(f'RTT: {rtt_values}')
                         min_rdt = 1000.0
                         position_rdt = -1
                         for i in range(len(rtt_array)):
@@ -119,6 +134,8 @@ def main():
 
     except ConnectionRefusedError:
         print(D)
+    except ConnectionResetError:
+        print(H)
 
 
 if __name__ == '__main__':
