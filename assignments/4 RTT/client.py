@@ -9,6 +9,7 @@ rtt_values = {}
 connected_servers = {}
 connected_ports = []
 rtt_array = []
+connection_sockets = []
 typeof, subtype, length, sub_len, msg = 0, 0, 0, 0, 0
 serverip = '127.0.0.1'
 servers = [(serverip, 1001), (serverip, 1002), (serverip, 1003), (serverip, 1004), (serverip, 1005)]
@@ -22,16 +23,17 @@ G = 'Enter your message:'
 H = '[CONNECTION CLOSED]'
 
 
-def build_connections(sock):
+def build_connections():
     for item in connected_servers:
         if item.split("'")[0] not in connected_ports:
             connected_ports.append(item.split("'")[0])
-
     for i in range(len(connected_ports)):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.connect(('127.0.0.1', int(connected_ports[i])))
-        iThread = threading.Thread(target=CheckRTT, args=(sock, connected_ports[i]))
+        conn_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        conn_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        conn_sock.connect(('127.0.0.1', int(connected_ports[i])))
+        if conn_sock not in connection_sockets:
+            connection_sockets.append(conn_sock)
+        iThread = threading.Thread(target=CheckRTT, args=(conn_sock, connected_ports[i]))
         iThread.start()
         iThread.join()
 
@@ -45,11 +47,8 @@ def CheckRTT(sock, port):
     rtt_values.update({str(port): elapsed})
 
 
+
 def send_msg(conn):
-    name = input(f'{A}\n{E} ')
-    conn.send(struct.pack('>bb hh', 2, 1, len(name), 0))
-    conn.send(name.encode())
-    conn.send(struct.pack('>bb hh', 0, 0, 0, 0))
     while True:
         time.sleep(1)
         sendto = input(f'{F}\n')
@@ -73,7 +72,8 @@ def main():
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.connect(('127.0.0.1', port_arr[index]))
         connected_servers.update({str(port_arr[index]): '127.0.0.1'})
-        threading.Thread(target=send_msg, args=(sock,)).start()
+        name = input(f'{A}\n{E} ')
+        sock.send(struct.pack('>bb hh', 0, 0, 0, 0))
 
         while True:
             data = sock.recv(6)
@@ -95,7 +95,7 @@ def main():
                                 ip1 = int(ip)
                                 servers_db[ip1] = port
                                 connected_servers[ip] = port
-                                build_connections(sock)
+                        build_connections()
                         rtt_array = list(rtt_values.values())
                         min_rdt = 1000.0
                         position_rdt = -1
@@ -103,19 +103,20 @@ def main():
                             if float(rtt_array[i]) < min_rdt:
                                 min_rdt = float(rtt_array[i])
                                 position_rdt = i
-                        for i in range(len(connected_ports)):
-                            # Don't create a new connection for the port you want to keep open
+                        for i in range(len(connection_sockets)):
                             if i != position_rdt:
-                                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                                connection_sockets[i].send(struct.pack('>bb hh', 4, 1, 0, 0))
+                                connection_sockets[i].close()
+                            else:
+                                sock = connection_sockets[i]
+
+                        for i in range(len(connected_ports)):
+                            if i != position_rdt:
                                 print(f'{H} --> {connected_ports[i]}')
+                        sock.send(struct.pack('>bb hh', 2, 1, len(name), 0))
+                        sock.send(name.encode())
+                        threading.Thread(target=send_msg, args=(sock,)).start()
 
-                                # print("TEST LOGOUT")
-                                # sock.send(struct.pack('>bb hh', 4, 1, 0, 0))
-                                # sock.recv(6)
-                                # print("TEST LOGOUT FINISHED")
-
-                                s.close()
     except ConnectionRefusedError:
         print(D)
 

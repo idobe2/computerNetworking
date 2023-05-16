@@ -7,10 +7,12 @@ clients_db = {}
 connected_servers = {}
 connected_clients = {}
 ports = [1001, 1002, 1003, 1004, 1005]
+connection_threads = []
 serverip = '127.0.0.1'
 A = '[NEW CONNECTION]'
 B = '[LOST CONNECTION]'
 C = f'[{socket.gethostname()}]'
+D = '[CLIENT DISCONNECT]'
 E = '[ECHO]'
 F = '[SERVER CLOSED]'
 G = '[CLIENT CLOSED]'
@@ -86,13 +88,13 @@ def msg_handler(server_socket, server_address):
                         msg = E.encode()
                         server_socket.send(msg)
                     elif subtype == 1:
-                        server_socket.close()
+                        print(f'{D} --> {server_address}')
 
     except ConnectionResetError:
         if server_address[1] in ports:
             del connected_servers[server_address]
             print(f'{F} --> {server_address}')
-        else:
+        elif server_socket.getpeername() in connected_clients:
             del connected_clients[server_socket.getpeername()]
             print(f'{G} --> {server_address}')
 
@@ -106,7 +108,9 @@ def connect_to_other(address, server_port):
             server_sock.connect((values, keys))
             connected_servers[(values, keys)] = server_sock
             server_sock.send(struct.pack('>bb hh', 2, 0, 0, 0))
-            threading.Thread(target=msg_handler, args=(server_sock, (values, keys),)).start()
+            iThread = threading.Thread(target=msg_handler, args=(server_sock, (values, keys),))
+            iThread.start()
+            connection_threads.append(iThread)
 
 
 def set_connection(server_port):
@@ -118,7 +122,9 @@ def set_connection(server_port):
     while True:
         server_socket, server_address = sock.accept()
         print(f'{A} --> {server_address[1]}\n')
-        threading.Thread(target=msg_handler, args=(server_socket, server_address,)).start()
+        iThread = threading.Thread(target=msg_handler, args=(server_socket, server_address,))
+        iThread.start()
+        connection_threads.append(iThread)
 
 
 def main():
@@ -158,14 +164,17 @@ def main():
                                     servers_db[ip1] = port
                     if len(servers_db) > 1:
                         connect_to_other(servers[i], server_port)
-                threading.Thread(target=msg_handler, args=(server_sock, servers[i],)).start()
+                iThread = threading.Thread(target=msg_handler, args=(server_sock, servers[i],))
+                iThread.start()
+                connection_threads.append(iThread)
                 break
             except ConnectionRefusedError:
                 print(f'{B} --> {ports[i]}')
 
-    threading.Thread(target=set_connection, args=(server_port,)).start()
+    iThread = threading.Thread(target=set_connection, args=(server_port,))
+    iThread.start()
+    connection_threads.append(iThread)
 
 
 if __name__ == '__main__':
-    print(W)
-    main()
+        main()
