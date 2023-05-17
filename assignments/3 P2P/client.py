@@ -19,7 +19,7 @@ def send_msg(conn):
     conn.send(struct.pack('>bb hh', 2, 1, len(name), 0))
     conn.send(name.encode())
     while True:
-        sendto = input(f'{F} ')
+        sendto = input(f'{F}\n')
         message = input(f'{G} ')
         message1 = sendto + ' ' + message
         msg_len = len(message1)
@@ -50,8 +50,11 @@ try:
             if typeof == 3:
                 msg = sock.recv(length)
                 message = msg.decode().split()
-                print(f'\n{B} {message[1]}')
-                print(f'{C} {message[2]}')
-                print(f'{F} ')
+                print(B, end=' ')
+                for i in range(1, len(message) - 1):
+                    print(message[i], end=' ')
+                print('\n')
+                print(f'{C} {message[len(message) - 1]}')
+                print(f'{F}')
 except ConnectionRefusedError:
     print(D)
