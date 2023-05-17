@@ -96,8 +96,11 @@ def main():
                 if typeof == 3:
                     msg = sock.recv(length)
                     message = msg.decode().split()
-                    print(f'\n{B} {message[1]}')
-                    print(f'{C} {message[2]}')
+                    print(B, end=' ')
+                    for i in range(1, len(message) - 1):
+                        print(message[i], end=' ')
+                    print('\n')
+                    print(f'{C} {message[len(message)-1]}')
                     print(f'{F} ')
                 if typeof == 1:
                     msg = sock.recv(length).decode()
